@@ -6,10 +6,9 @@ use Http\Client\Common\HttpMethodsClient;
 use Http\Client\HttpClient;
 use Http\Discovery\Psr17FactoryDiscovery;
 use Http\Discovery\Psr18ClientDiscovery;
-use Monolog\Handler\StreamHandler;
-use Monolog\Logger;
 use Psr\Http\Client\ClientInterface;
 use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Typesense\Exceptions\ConfigError;
 
 /**
@@ -62,11 +61,6 @@ class Configuration
     private $client = null;
 
     /**
-     * @var int
-     */
-    private int $logLevel;
-
-    /**
      * @var bool
      */
     private bool $randomizeNodes;
@@ -110,9 +104,11 @@ class Configuration
         $this->numRetries           = (float)($config['num_retries'] ?? 3);
         $this->retryIntervalSeconds = (float)($config['retry_interval_seconds'] ?? 1.0);
 
-        $this->logLevel = $config['log_level'] ?? Logger::WARNING;
-        $this->logger   = new Logger('typesense');
-        $this->logger->pushHandler(new StreamHandler('php://stdout', $this->logLevel));
+        if ($logger = $config["logger"] and ($logger instanceof LoggerInterface)) {
+            $this->logger = $logger;
+        } else {
+            $this->logger = new NullLogger();
+        }
 
         if (isset($config['client'])) {
             if ($config['client'] instanceof HttpMethodsClient || $config['client'] instanceof ClientInterface) {
